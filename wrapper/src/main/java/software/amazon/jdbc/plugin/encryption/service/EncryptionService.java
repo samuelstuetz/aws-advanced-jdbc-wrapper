@@ -16,8 +16,6 @@
 
 package software.amazon.jdbc.plugin.encryption.service;
 
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
