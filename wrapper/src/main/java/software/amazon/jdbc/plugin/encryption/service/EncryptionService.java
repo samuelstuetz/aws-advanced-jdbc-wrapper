@@ -16,9 +16,7 @@
 
 package software.amazon.jdbc.plugin.encryption.service;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -367,12 +365,7 @@ public class EncryptionService {
     } else if (value instanceof byte[]) {
       return (byte[]) value;
     } else {
-      // Fallback to Java serialization for complex objects
-      try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-          ObjectOutputStream oos = new ObjectOutputStream(baos)) {
-        oos.writeObject(value);
-        return baos.toByteArray();
-      }
+      throw EncryptionException.encryptionFailed("Unable to serialize value, unhandled type", null);
     }
   }
 
