@@ -182,7 +182,8 @@ jobs:
       - name: Get Github Action IP
         if: always()
         id: ip
-        uses: haythem/public-ip@bdddd92c198b0955f0b494a8ebeac529754262ff # v1.3.0
+        run: |
+          echo "ipv4=$(curl -s ifconfig.me)" >> $GITHUB_OUTPUT
 
       - name: Remove Github Action IP
         if: always()
