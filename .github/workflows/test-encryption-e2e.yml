@@ -183,7 +183,7 @@ jobs:
         if: always()
         id: ip
         run: |
-          echo "ipv4=$(curl -s ifconfig.me)" >> $GITHUB_OUTPUT
+          echo "ipv4=$(curl -s https://checkip.amazonaws.com)" >> $GITHUB_OUTPUT
 
       - name: Remove Github Action IP
         if: always()
