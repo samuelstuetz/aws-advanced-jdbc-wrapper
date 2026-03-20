@@ -138,20 +138,6 @@ public class EncryptionService {
   }
 
   /**
-   * Encrypts a value using the same key for both encryption and HMAC. This is a convenience method
-   * for backward compatibility.
-   *
-   * @param value the value to encrypt
-   * @param dataKey the encryption key (also used for HMAC)
-   * @param algorithm the encryption algorithm to use
-   * @return the encrypted data as byte array with HMAC prepended
-   * @throws EncryptionException if encryption fails
-   */
-  public byte[] encrypt(Object value, byte[] dataKey, String algorithm) throws EncryptionException {
-    return encrypt(value, dataKey, dataKey, algorithm);
-  }
-
-  /**
    * Decrypts encrypted data using the specified data key and algorithm.
    *
    * @param encryptedValue the encrypted data with HMAC prepended
@@ -257,23 +243,6 @@ public class EncryptionService {
           .withAlgorithm(algorithm)
           .withOperation("DECRYPT");
     }
-  }
-
-  /**
-   * Decrypts encrypted data using the same key for both decryption and HMAC verification. This is a
-   * convenience method for backward compatibility.
-   *
-   * @param encryptedValue the encrypted data with HMAC prepended
-   * @param dataKey the decryption key (also used for HMAC verification)
-   * @param algorithm the encryption algorithm used
-   * @param targetType the expected type of the decrypted value
-   * @return the decrypted value
-   * @throws EncryptionException if decryption fails or HMAC verification fails
-   */
-  public Object decrypt(
-      byte[] encryptedValue, byte[] dataKey, String algorithm, Class<?> targetType)
-      throws EncryptionException {
-    return decrypt(encryptedValue, dataKey, dataKey, algorithm, targetType);
   }
 
   /**
