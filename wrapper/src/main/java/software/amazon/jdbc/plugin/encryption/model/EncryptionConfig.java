@@ -101,7 +101,7 @@ public class EncryptionConfig {
   private final int dataKeyCacheMaxSize;
   private final Duration dataKeyCacheExpiration;
   private final Duration metadataRefreshInterval;
-  private final String encryptionMetadataSchema;
+  private final SchemaName encryptionMetadataSchema;
 
   private EncryptionConfig(Builder builder) {
     this.kmsRegion = Objects.requireNonNull(builder.kmsRegion, "kmsRegion cannot be null");
@@ -174,7 +174,7 @@ public class EncryptionConfig {
     return metadataRefreshInterval;
   }
 
-  public String getEncryptionMetadataSchema() {
+  public SchemaName getEncryptionMetadataSchema() {
     return encryptionMetadataSchema;
   }
 
@@ -218,27 +218,6 @@ public class EncryptionConfig {
 
     if (metadataRefreshInterval.isNegative()) {
       throw new IllegalArgumentException("Metrics reporting interval cannot be negative");
-    }
-    validateSchemaName(encryptionMetadataSchema);
-  }
-
-  private void validateSchemaName(String schemaName) {
-    if (schemaName == null || schemaName.trim().isEmpty()) {
-      throw new IllegalArgumentException("Schema name cannot be null or empty");
-    }
-
-    // Only allow alphanumeric, underscore, and dollar sign (valid SQL identifiers)
-    if (!schemaName.matches("^[a-zA-Z_$][a-zA-Z0-9_$]*$")) {
-      throw new IllegalArgumentException(
-          "Invalid schema name: must start with letter/underscore/$ and contain only alphanumeric/underscore/$ characters");
-    }
-
-    // Prevent SQL keywords that could be dangerous
-    String upper = schemaName.toUpperCase();
-    if (upper.equals("DROP") || upper.equals("DELETE") || upper.equals("UPDATE")
-        || upper.equals("INSERT") || upper.equals("SELECT") || upper.equals("TRUNCATE")
-        || upper.equals("ALTER") || upper.equals("CREATE")) {
-      throw new IllegalArgumentException("Schema name cannot be a SQL keyword: " + schemaName);
     }
   }
 
@@ -374,7 +353,7 @@ public class EncryptionConfig {
     private int dataKeyCacheMaxSize = 1000;
     private Duration dataKeyCacheExpiration = Duration.ofMinutes(30);
     private Duration metadataRefreshInterval = Duration.ofMinutes(5);
-    private String encryptionMetadataSchema = "encrypt"; // Default schema name
+    private SchemaName encryptionMetadataSchema = SchemaName.of("encrypt"); // Default schema name
 
     public Builder kmsRegion(String kmsRegion) {
       this.kmsRegion = kmsRegion;
@@ -442,7 +421,7 @@ public class EncryptionConfig {
     }
 
     public Builder encryptionMetadataSchema(String encryptionMetadataSchema) {
-      this.encryptionMetadataSchema = encryptionMetadataSchema;
+      this.encryptionMetadataSchema = SchemaName.of(encryptionMetadataSchema);
       return this;
     }
 

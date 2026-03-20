@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import software.amazon.jdbc.plugin.encryption.model.SchemaName;
 
 /**
  * Validates that the required database schema for encryption metadata exists and has the correct
@@ -34,9 +35,9 @@ import java.util.Set;
  */
 public class SchemaValidator {
 
-  private final String metadataSchema;
+  private final SchemaName metadataSchema;
 
-  public SchemaValidator(String metadataSchema) {
+  public SchemaValidator(SchemaName metadataSchema) {
     this.metadataSchema = Objects.requireNonNull(metadataSchema, "Metadata schema cannot be null");
   }
 

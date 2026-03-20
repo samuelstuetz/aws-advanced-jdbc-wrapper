@@ -49,6 +49,7 @@ import software.amazon.jdbc.PluginService;
 import software.amazon.jdbc.plugin.encryption.cache.DataKeyCache;
 import software.amazon.jdbc.plugin.encryption.model.EncryptionConfig;
 import software.amazon.jdbc.plugin.encryption.model.KeyMetadata;
+import software.amazon.jdbc.plugin.encryption.model.SchemaName;
 import software.amazon.jdbc.targetdriverdialect.PgTargetDriverDialect;
 
 /**
@@ -108,7 +109,7 @@ public class KeyManager {
   }
 
   private String getInsertKeyMetadataSql() {
-    String schema = config.getEncryptionMetadataSchema();
+    SchemaName schema = config.getEncryptionMetadataSchema();
     String sql = "INSERT INTO "
         + schema + ".key_storage"
         + " (name, master_key_arn, encrypted_data_key, hmac_key, key_spec, created_at, last_used_at) "
@@ -117,13 +118,13 @@ public class KeyManager {
   }
 
   private String getSelectKeyMetadataSql() {
-    String schema = config.getEncryptionMetadataSchema();
+    SchemaName schema = config.getEncryptionMetadataSchema();
     return "SELECT id, name, master_key_arn, encrypted_data_key, hmac_key, key_spec, created_at, last_used_at "
         + "FROM " + schema + ".key_storage WHERE id = ?";
   }
 
   private String getUpdateLastUsedSql() {
-    String schema = config.getEncryptionMetadataSchema();
+    SchemaName schema = config.getEncryptionMetadataSchema();
     return "UPDATE " + schema + ".key_storage SET last_used_at = ? WHERE key_id = ?";
   }
 

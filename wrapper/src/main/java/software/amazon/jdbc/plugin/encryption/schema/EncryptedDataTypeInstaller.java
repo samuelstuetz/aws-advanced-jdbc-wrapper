@@ -27,13 +27,14 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import software.amazon.jdbc.plugin.encryption.model.SchemaName;
 
 public class EncryptedDataTypeInstaller {
 
   private static final Logger LOGGER = Logger.getLogger(EncryptedDataTypeInstaller.class.getName());
   private static final String SQL_RESOURCE_PATH = "/sql/encrypted_data_type.sql";
 
-  public static void installEncryptedDataType(Connection connection, String metaDataSchema) throws SQLException {
+  public static void installEncryptedDataType(Connection connection, SchemaName metaDataSchema) throws SQLException {
 
     // PostgreSQL-specific installation
     LOGGER.info("Installing encrypted_data custom type for PostgreSQL");
@@ -44,7 +45,7 @@ public class EncryptedDataTypeInstaller {
 
       // Use DOMAIN-based implementation
       String sql = loadSqlScript();
-      sql = sql.replaceFirst("SCHEMA_NAME", metaDataSchema);
+      sql = sql.replaceFirst("SCHEMA_NAME", metaDataSchema.getValue());
       stmt.execute(sql);
 
       LOGGER.info("encrypted_data type installed successfully (DOMAIN approach)");

@@ -55,6 +55,7 @@ import software.amazon.awssdk.services.kms.model.GenerateDataKeyRequest;
 import software.amazon.awssdk.services.kms.model.GenerateDataKeyResponse;
 import software.amazon.jdbc.PropertyDefinition;
 import software.amazon.jdbc.plugin.encryption.model.EncryptionConfig;
+import software.amazon.jdbc.plugin.encryption.model.SchemaName;
 import software.amazon.jdbc.plugin.encryption.schema.EncryptedDataTypeInstaller;
 
 /** Integration test for KMS encryption functionality with JSqlParser. */
@@ -102,7 +103,7 @@ public class KmsEncryptionIntegrationTest {
     props.setProperty(EncryptionConfig.KMS_REGION.name, region);
 
     // Get the metadata schema from config (defaults to "encrypt")
-    String metadataSchema = EncryptionConfig.ENCRYPTION_METADATA_SCHEMA.defaultValue;
+    SchemaName metadataSchema = SchemaName.of(EncryptionConfig.ENCRYPTION_METADATA_SCHEMA.defaultValue);
 
     String url = ConnectionStringHelper.getWrapperUrl();
     // use a direct connection so that we setup all of the metadata before instantiating the
@@ -338,7 +339,7 @@ public class KmsEncryptionIntegrationTest {
   }
 
 
-  private static void setupPostgreSQL(Connection conn, Statement stmt, String metadataSchema)
+  private static void setupPostgreSQL(Connection conn, Statement stmt, SchemaName metadataSchema)
       throws Exception {
     // Install encrypted_data custom type
     LOGGER.finest("Installing encrypted_data custom type for PostgreSQL");
@@ -392,7 +393,7 @@ public class KmsEncryptionIntegrationTest {
             + "FOR EACH ROW EXECUTE FUNCTION validate_encrypted_data_hmac('ssn')");
   }
 
-  private static void setupMySQL(Connection conn, Statement stmt, String metadataSchema)
+  private static void setupMySQL(Connection conn, Statement stmt, SchemaName metadataSchema)
       throws Exception {
     LOGGER.finest("Setting up MySQL encryption schema");
 

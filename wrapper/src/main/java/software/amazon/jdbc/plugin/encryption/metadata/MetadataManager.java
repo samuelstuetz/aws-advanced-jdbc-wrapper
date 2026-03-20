@@ -37,6 +37,7 @@ import software.amazon.jdbc.PluginService;
 import software.amazon.jdbc.plugin.encryption.model.ColumnEncryptionConfig;
 import software.amazon.jdbc.plugin.encryption.model.EncryptionConfig;
 import software.amazon.jdbc.plugin.encryption.model.KeyMetadata;
+import software.amazon.jdbc.plugin.encryption.model.SchemaName;
 
 /**
  * Manages encryption metadata by loading configuration from database tables, providing caching
@@ -110,7 +111,7 @@ public class MetadataManager {
   }
 
   private String getLoadEncryptionMetadataSql() {
-    String schema = config.getEncryptionMetadataSchema();
+    SchemaName schema = config.getEncryptionMetadataSchema();
     return "SELECT em.table_name, em.column_name, em.encryption_algorithm, em.key_id, "
         + "       em.created_at, em.updated_at, "
         + "       ks.name, ks.master_key_arn, ks.encrypted_data_key, ks.hmac_key, ks.key_spec, "
@@ -123,12 +124,12 @@ public class MetadataManager {
   }
 
   private String getCheckColumnEncryptedSql() {
-    String schema = config.getEncryptionMetadataSchema();
+    SchemaName schema = config.getEncryptionMetadataSchema();
     return "SELECT 1 FROM " + schema + ".encryption_metadata WHERE table_name = ? AND column_name = ?";
   }
 
   private String getColumnConfigSql() {
-    String schema = config.getEncryptionMetadataSchema();
+    SchemaName schema = config.getEncryptionMetadataSchema();
     return "SELECT em.table_name, em.column_name, em.encryption_algorithm, em.key_id, "
         + "       em.created_at, em.updated_at, "
         + "       ks.master_key_arn, ks.encrypted_data_key, ks.hmac_key, ks.key_spec, "

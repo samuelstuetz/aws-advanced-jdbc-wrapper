@@ -43,6 +43,7 @@ import software.amazon.jdbc.plugin.encryption.metadata.MetadataManager;
 import software.amazon.jdbc.plugin.encryption.model.ColumnEncryptionConfig;
 import software.amazon.jdbc.plugin.encryption.model.EncryptionConfig;
 import software.amazon.jdbc.plugin.encryption.model.KeyMetadata;
+import software.amazon.jdbc.plugin.encryption.model.SchemaName;
 
 /**
  * Utility class providing administrative functions for key management operations. This class offers
@@ -108,7 +109,7 @@ public class KeyManagementUtility {
   }
 
   private String getInsertEncryptionMetadataSql() {
-    String schema = config.getEncryptionMetadataSchema();
+    SchemaName schema = config.getEncryptionMetadataSchema();
     String baseSql = "INSERT INTO "
         + schema + ".encryption_metadata"
         + " (table_name, column_name, encryption_algorithm, key_id, created_at, updated_at) "
@@ -128,18 +129,18 @@ public class KeyManagementUtility {
   }
 
   private String getUpdateEncryptionMetadataKeySql() {
-    String schema = config.getEncryptionMetadataSchema();
+    SchemaName schema = config.getEncryptionMetadataSchema();
     return "UPDATE " + schema + ".encryption_metadata SET key_id = ?, updated_at = ? "
         + "WHERE table_name = ? AND column_name = ?";
   }
 
   private String getSelectColumnsWithKeySql() {
-    String schema = config.getEncryptionMetadataSchema();
+    SchemaName schema = config.getEncryptionMetadataSchema();
     return "SELECT table_name, column_name FROM " + schema + ".encryption_metadata WHERE key_id = ?";
   }
 
   private String getDeleteEncryptionMetadataSql() {
-    String schema = config.getEncryptionMetadataSchema();
+    SchemaName schema = config.getEncryptionMetadataSchema();
     return "DELETE FROM " + schema + ".encryption_metadata WHERE table_name = ? AND column_name = ?";
   }
 
