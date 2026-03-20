@@ -19,13 +19,15 @@ package software.amazon.jdbc.plugin.encryption.cache;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 import software.amazon.jdbc.plugin.encryption.model.EncryptionConfig;
 
@@ -38,6 +40,7 @@ public class DataKeyCache {
   private static final Logger LOGGER = Logger.getLogger(DataKeyCache.class.getName());
 
   private final Map<String, CacheEntry> cache;
+  private final ReadWriteLock lock = new ReentrantReadWriteLock();
   private final ScheduledExecutorService cleanupExecutor;
   private final EncryptionConfig config;
 
@@ -48,7 +51,7 @@ public class DataKeyCache {
 
   public DataKeyCache(EncryptionConfig config) {
     this.config = config;
-    this.cache = new ConcurrentHashMap<>();
+    this.cache = new HashMap<>();
     this.cleanupExecutor =
         Executors.newSingleThreadScheduledExecutor(
             r -> {
@@ -82,22 +85,27 @@ public class DataKeyCache {
       return null;
     }
 
-    CacheEntry entry = cache.get(keyId);
-    if (entry == null) {
-      missCount.incrementAndGet();
-      LOGGER.finest(() -> String.format("Cache miss for key: %s", keyId));
-      return null;
-    }
+    lock.readLock().lock();
+    try {
+      CacheEntry entry = cache.get(keyId);
+      if (entry == null) {
+        missCount.incrementAndGet();
+        LOGGER.finest(() -> String.format("Cache miss for key: %s", keyId));
+        return null;
+      }
 
-    if (entry.isExpired(config.getDataKeyCacheExpiration())) {
-      missCount.incrementAndGet();
-      LOGGER.finest(() -> String.format("Cache entry expired for key: %s", keyId));
-      return null;
-    }
+      if (entry.isExpired(config.getDataKeyCacheExpiration())) {
+        missCount.incrementAndGet();
+        LOGGER.finest(() -> String.format("Cache entry expired for key: %s", keyId));
+        return null;
+      }
 
-    hitCount.incrementAndGet();
-    LOGGER.finest(() -> String.format("Cache hit for key: %s", keyId));
-    return entry.getDataKey();
+      hitCount.incrementAndGet();
+      LOGGER.finest(() -> String.format("Cache hit for key: %s", keyId));
+      return entry.getDataKey();
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   /**
@@ -111,15 +119,20 @@ public class DataKeyCache {
       return;
     }
 
-    // Check if we need to evict entries to make room
-    if (cache.size() >= config.getDataKeyCacheMaxSize()) {
-      evictOldestEntry();
+    lock.writeLock().lock();
+    try {
+      // Check if we need to evict entries to make room
+      if (cache.size() >= config.getDataKeyCacheMaxSize()) {
+        evictOldestEntry();
+      }
+
+      CacheEntry entry = new CacheEntry(dataKey.clone());
+      cache.put(keyId, entry);
+
+      LOGGER.finest(() -> String.format("Cached data key for: %s", keyId));
+    } finally {
+      lock.writeLock().unlock();
     }
-
-    CacheEntry entry = new CacheEntry(dataKey.clone());
-    cache.put(keyId, entry);
-
-    LOGGER.finest(() -> String.format("Cached data key for: %s", keyId));
   }
 
   /**
@@ -132,19 +145,29 @@ public class DataKeyCache {
       return;
     }
 
-    CacheEntry removed = cache.remove(keyId);
-    if (removed != null) {
-      removed.clear();
-      LOGGER.finest(() -> String.format("Removed key from cache: %s", keyId));
+    lock.writeLock().lock();
+    try {
+      CacheEntry removed = cache.remove(keyId);
+      if (removed != null) {
+        removed.clear();
+        LOGGER.finest(() -> String.format("Removed key from cache: %s", keyId));
+      }
+    } finally {
+      lock.writeLock().unlock();
     }
   }
 
   /** Clears all entries from the cache. */
-  public synchronized void clear() {
-    // Clear sensitive data before removing entries
-    cache.values().forEach(CacheEntry::clear);
-    cache.clear();
-    LOGGER.info("Cache cleared");
+  public void clear() {
+    lock.writeLock().lock();
+    try {
+      // Clear sensitive data before removing entries
+      cache.values().forEach(CacheEntry::clear);
+      cache.clear();
+      LOGGER.info("Cache cleared");
+    } finally {
+      lock.writeLock().unlock();
+    }
   }
 
   /**
@@ -153,8 +176,13 @@ public class DataKeyCache {
    * @return CacheStats object with current metrics
    */
   public CacheStats getStats() {
-    return new CacheStats(
-        cache.size(), hitCount.get(), missCount.get(), evictionCount.get(), calculateHitRate());
+    lock.readLock().lock();
+    try {
+      return new CacheStats(
+          cache.size(), hitCount.get(), missCount.get(), evictionCount.get(), calculateHitRate());
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   /** Shuts down the cache and cleans up resources. */
@@ -175,33 +203,38 @@ public class DataKeyCache {
   }
 
   /** Removes expired entries from the cache. */
-  private synchronized void cleanupExpiredEntries() {
+  private void cleanupExpiredEntries() {
     if (!config.isDataKeyCacheEnabled()) {
       return;
     }
 
-    Duration expiration = config.getDataKeyCacheExpiration();
-    int removedCount = 0;
+    lock.writeLock().lock();
+    try {
+      Duration expiration = config.getDataKeyCacheExpiration();
+      int removedCount = 0;
 
-    Iterator<Map.Entry<String, CacheEntry>> iterator = cache.entrySet().iterator();
-    while (iterator.hasNext()) {
-      Map.Entry<String, CacheEntry> entry = iterator.next();
-      if (entry.getValue().isExpired(expiration)) {
-        entry.getValue().clear();
-        iterator.remove();
-        removedCount++;
+      Iterator<Map.Entry<String, CacheEntry>> iterator = cache.entrySet().iterator();
+      while (iterator.hasNext()) {
+        Map.Entry<String, CacheEntry> entry = iterator.next();
+        if (entry.getValue().isExpired(expiration)) {
+          entry.getValue().clear();
+          iterator.remove();
+          removedCount++;
+        }
       }
-    }
 
-    if (removedCount > 0) {
-      int finalRemovedCount = removedCount;
-      LOGGER.finest(
-          () -> String.format("Cleaned up %d expired cache entries", finalRemovedCount));
+      if (removedCount > 0) {
+        int finalRemovedCount = removedCount;
+        LOGGER.finest(
+            () -> String.format("Cleaned up %d expired cache entries", finalRemovedCount));
+      }
+    } finally {
+      lock.writeLock().unlock();
     }
   }
 
-  /** Evicts the oldest entry from the cache to make room for new entries. */
-  private synchronized void evictOldestEntry() {
+  /** Evicts the oldest entry from the cache to make room for new entries. Caller must hold write lock. */
+  private void evictOldestEntry() {
     if (cache.isEmpty()) {
       return;
     }

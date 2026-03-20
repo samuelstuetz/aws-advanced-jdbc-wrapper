@@ -529,9 +529,7 @@ public class KeyManager {
       byte[] hash = digest.digest(encryptedDataKey.getBytes(StandardCharsets.UTF_8));
       return "datakey_" + Base64.getEncoder().encodeToString(hash);
     } catch (NoSuchAlgorithmException e) {
-      // SHA-256 should always be available, fallback to hashCode if not
-      LOGGER.warning("SHA-256 not available, falling back to hashCode");
-      return "datakey_" + Math.abs(encryptedDataKey.hashCode());
+      throw new IllegalStateException("SHA-256 algorithm is required but not available", e);
     }
   }
 
